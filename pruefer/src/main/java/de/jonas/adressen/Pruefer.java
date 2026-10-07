@@ -9,12 +9,17 @@ import java.util.Locale;
 import java.util.Map;
 
 public class Pruefer {
-
+	/**
+	 * Geht alle Adressen einmal durch und sammelt die gefundenen Fehler.
+	 * Einzelprüfungen schauen nur auf eine Adresse, die Dublettenprüfung
+	 * vergleicht über die Map "gesehen" mit den bisherigen Adressen.
+	 * Am Ende werden die Befunde nach id sortiert.
+	 */
     public static List<Befund> pruefe(List<Adresse> adressen) {
-        List<Befund> befunde = new ArrayList<>();
-        Map<String, Adresse> gesehen = new HashMap<>();
+        List<Befund> befunde = new ArrayList<>(); 
+        Map<String, Adresse> gesehen = new HashMap<>(); // merkt sich alle adressen die wir schon durchlaufen haben
 
-        for (Adresse a : adressen) {
+        for (Adresse a : adressen) {   
             pruefeFehlendeWerte(a, befunde);
             pruefePlz(a, befunde);
             pruefeFormat(a, befunde);
@@ -22,8 +27,11 @@ public class Pruefer {
         }
         befunde.sort(Comparator.comparingInt(Befund::id));
         return befunde;
-    }
-
+    } 
+    /**
+     * Packt die vier Textfelder einer Adresse in eine Map (Name -> Wert),
+     * damit ich in den Prüfungen per Schleife über alle Felder gehen kann.
+     */
     private static Map<String, String> felder(Adresse a) {
         Map<String, String> felder = new LinkedHashMap<>();
         felder.put("strasse", a.strasse());
@@ -32,7 +40,7 @@ public class Pruefer {
         felder.put("ort", a.ort());
         return felder;
     }
-
+    /** Meldet jedes Feld, das leer ist oder nur Leerzeichen enthält. */
     private static void pruefeFehlendeWerte(Adresse a, List<Befund> befunde) {
         for (var feld : felder(a).entrySet()) {
             if (feld.getValue().isBlank()) {
@@ -41,7 +49,10 @@ public class Pruefer {
             }
         }
     }
-
+    /**
+     * Prüft, ob die PLZ aus genau 5 Ziffern besteht (regulärer Ausdruck).
+     * Leere PLZ werden hier übersprungen, die meldet schon pruefeFehlendeWerte.
+     */
     private static void pruefePlz(Adresse a, List<Befund> befunde) {
         String plz = a.plz().trim();
         if (!plz.isEmpty() && !plz.matches("\\d{5}")) {
@@ -49,7 +60,10 @@ public class Pruefer {
                     "PLZ '" + a.plz() + "' ist keine 5-stellige Zahl"));
         }
     }
-
+    /**
+     * Sucht Formatfehler: Leerzeichen am Anfang oder Ende eines Feldes und
+     * Kleinschreibung am Anfang von Straße und Ort. Leere Felder werden übersprungen.
+     */
     private static void pruefeFormat(Adresse a, List<Befund> befunde) {
         for (var feld : felder(a).entrySet()) {
             String name = feld.getKey();
@@ -68,7 +82,12 @@ public class Pruefer {
             }
         }
     }
-
+    /**
+     * Erkennt Dubletten. Die Adresse wird normalisiert und in der Map gesucht.
+     * Gibt es sie schon, ist es eine Dublette: "exakt", wenn die Rohwerte
+     * gleich sind, sonst "ähnlich" (nur andere Schreibweise).
+     * Gemeldet wird immer der spätere Eintrag.
+     */
     private static void pruefeDublette(Adresse a, Map<String, Adresse> gesehen,
                                        List<Befund> befunde) {
         String schluessel = normalisiere(a);
@@ -83,12 +102,16 @@ public class Pruefer {
                     "Aehnliche Dublette von id " + erste.id()));
         }
     }
-
+    /** Setzt die Felder unverändert zu einem Vergleichstext zusammen (für exakte Dubletten). */
     private static String rohSchluessel(Adresse a) {
         return a.strasse() + "|" + a.hausnummer() + "|" + a.plz() + "|" + a.ort();
     }
 
-    // Vereinheitlicht Schreibweisen, damit "Hauptstr." und "Hauptstrasse" gleich werden
+    /**
+     * Vereinheitlicht die Schreibweise: kleingeschrieben, ohne Leerzeichen am Rand,
+     * "ß" wird zu "ss", und "straße", "strasse", "str." am Ende werden zu "str".
+     * So werden "Hauptstr." und "Hauptstraße" als gleiche Adresse erkannt.
+     */
     private static String normalisiere(Adresse a) {
         String strasse = a.strasse().trim().toLowerCase(Locale.GERMAN)
                 .replace("\u00df", "ss")

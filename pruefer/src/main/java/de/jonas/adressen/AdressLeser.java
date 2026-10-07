@@ -8,7 +8,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class AdressLeser {
-
+	/**
+	 * Liest die CSV-Datei Zeile für Zeile ein und wandelt jede Zeile in eine Adresse um.
+	 * Die Kopfzeile wird übersprungen. Werte werden nicht verändert,
+	 * damit der Prüfer die Fehler später selbst findet.
+	 */
     public static List<Adresse> lese(Path datei) throws IOException {
         List<String> zeilen = Files.readAllLines(datei, StandardCharsets.UTF_8);
         List<Adresse> adressen = new ArrayList<>();
